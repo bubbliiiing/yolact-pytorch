@@ -21,8 +21,8 @@ torchvision==0.4.0
 
 ## 文件下载
 训练所需的预训练权值可在百度网盘中下载。  
-链接: https://pan.baidu.com/s/1MsiLIK1gdThZn25RpxqY8A    
-提取码: m5bi   
+链接: https://pan.baidu.com/s/15shxmS4AAWBraqpqd6Jkzw    
+提取码: 4k37   
 
 shapes数据集下载地址如下，该数据集是使用labelme标注的结果，尚未经过其它处理，用于区分三角形和正方形：  
 链接: https://pan.baidu.com/s/1hrCaEYbnSGBOhjoiOKQmig   
