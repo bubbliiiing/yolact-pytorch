@@ -1,4 +1,4 @@
-## Yolact-keras实例分割模型在keras当中的实现
+## Yolact-keras实例分割模型在pytorch当中的实现
 ---
 
 ## 目录
