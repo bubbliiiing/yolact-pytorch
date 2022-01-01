@@ -16,7 +16,7 @@
 | COCO-Train2017 | [yolact_weights_coco.pth](https://github.com/bubbliiiing/yolact-pytorch/releases/download/v1.0/yolact_weights_coco.pth) | COCO-Val2017 | 544x544 | 30.4 | 52.0 | 27.3 | 47.7
 
 ## 所需环境
-pytorch==1.2.0
+pytorch==1.2.0  
 torchvision==0.4.0
 
 ## 文件下载
