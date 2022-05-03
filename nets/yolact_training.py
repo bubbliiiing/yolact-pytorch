@@ -1,7 +1,11 @@
+import math
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+eps = 1e-6
 
 def encode(matched, anchors):
     variances = [0.1, 0.2]
@@ -34,7 +38,7 @@ def jaccard(box_a, box_b, iscrowd: bool = False):
     area_b  = ((box_b[:, :, 2] - box_b[:, :, 0]) * (box_b[:, :, 3] - box_b[:, :, 1])).unsqueeze(1).expand_as(inter)  # [A,B]
     union   = area_a + area_b - inter
 
-    out     = inter / area_a if iscrowd else inter / union
+    out     = inter / (area_a + eps) if iscrowd else inter / (union + eps)
     return out if use_batch else out.squeeze(0)
 
 def match(pos_thresh, neg_thresh, box_gt, anchors, class_gt, crowd_boxes):
@@ -179,9 +183,9 @@ class Multi_Loss(nn.Module):
         total_num_pos   = num_pos.data.sum().float()
         for aa in losses:
             if aa != 'S':
-                losses[aa] /= total_num_pos
+                losses[aa] /= (total_num_pos + eps)
             else:
-                losses[aa] /= batch_size
+                losses[aa] /= (batch_size + eps)
         return losses
 
     #------------------------------------------------------------#
@@ -317,22 +321,22 @@ class Multi_Loss(nn.Module):
             #   mask_p          136, 136, num_pos
             #   pos_anchor_box  num_pos, 4
             #-----------------------------------------------------#
-            mask_p = torch.sigmoid(pred_proto[i] @ pos_coef.t())  
+            mask_p = pred_proto[i] @ pos_coef.t()
             mask_p = crop(mask_p, pos_anchor_box)  
             
-            mask_loss = F.binary_cross_entropy(mask_p, pos_mask_gt, reduction='none')
+            mask_loss = F.binary_cross_entropy_with_logits(mask_p, pos_mask_gt, reduction='none')
             #-----------------------------------------------------#
             #   每个先验框各自计算平均值
             #-----------------------------------------------------#
             pos_get_csize   = center_size(pos_anchor_box)
-            mask_loss       = mask_loss.sum(dim=(0, 1)) / pos_get_csize[:, 2] / pos_get_csize[:, 3]
+            mask_loss       = mask_loss.sum(dim=(0, 1)) / (pos_get_csize[:, 2] + eps) / (pos_get_csize[:, 3] + eps)
 
             if old_num_pos > num_pos:
-                mask_loss *= old_num_pos / num_pos
+                mask_loss *= old_num_pos / (num_pos + eps)
 
             loss_m += torch.sum(mask_loss)
         
-        return loss_m / proto_h / proto_w
+        return loss_m / (proto_h + eps) / (proto_w + eps)
 
     @staticmethod
     def semantic_segmentation_loss(segmentation_p, mask_gt, class_gt):
@@ -359,4 +363,41 @@ class Multi_Loss(nn.Module):
 
             loss_s += F.binary_cross_entropy_with_logits(cur_segment, segment_gt, reduction='sum')
 
-        return loss_s / mask_h / mask_w
+        return loss_s / (mask_h + eps) / (mask_w + eps)
+
+def get_lr_scheduler(lr_decay_type, lr, min_lr, total_iters, warmup_iters_ratio = 0.05, warmup_lr_ratio = 0.1, no_aug_iter_ratio = 0.05, step_num = 10):
+    def yolox_warm_cos_lr(lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter, iters):
+        if iters <= warmup_total_iters:
+            # lr = (lr - warmup_lr_start) * iters / float(warmup_total_iters) + warmup_lr_start
+            lr = (lr - warmup_lr_start) * pow(iters / float(warmup_total_iters), 2) + warmup_lr_start
+        elif iters >= total_iters - no_aug_iter:
+            lr = min_lr
+        else:
+            lr = min_lr + 0.5 * (lr - min_lr) * (
+                1.0 + math.cos(math.pi* (iters - warmup_total_iters) / (total_iters - warmup_total_iters - no_aug_iter))
+            )
+        return lr
+
+    def step_lr(lr, decay_rate, step_size, iters):
+        if step_size < 1:
+            raise ValueError("step_size must above 1.")
+        n       = iters // step_size
+        out_lr  = lr * decay_rate ** n
+        return out_lr
+
+    if lr_decay_type == "cos":
+        warmup_total_iters  = min(max(warmup_iters_ratio * total_iters, 1), 3)
+        warmup_lr_start     = max(warmup_lr_ratio * lr, 1e-6)
+        no_aug_iter         = min(max(no_aug_iter_ratio * total_iters, 1), 15)
+        func = partial(yolox_warm_cos_lr ,lr, min_lr, total_iters, warmup_total_iters, warmup_lr_start, no_aug_iter)
+    else:
+        decay_rate  = (min_lr / lr) ** (1 / (step_num - 1))
+        step_size   = total_iters / step_num
+        func = partial(step_lr, lr, decay_rate, step_size)
+
+    return func
+
+def set_optimizer_lr(optimizer, lr_scheduler_func, epoch):
+    lr = lr_scheduler_func(epoch)
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
