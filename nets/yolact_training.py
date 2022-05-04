@@ -42,9 +42,7 @@ def jaccard(box_a, box_b, iscrowd: bool = False):
     return out if use_batch else out.squeeze(0)
 
 def match(pos_thresh, neg_thresh, box_gt, anchors, class_gt, crowd_boxes):
-    anchors         = anchors.data
-    if box_gt.is_cuda:
-        anchors = anchors.cuda()
+    anchors = anchors.data.type_as(box_gt)
     #------------------------------#
     #   获得先验框的左上角和右下角
     #------------------------------#
