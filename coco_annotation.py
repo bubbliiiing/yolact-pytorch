@@ -2,6 +2,7 @@ import collections
 import datetime
 import glob
 import json
+import os
 import os.path as osp
 
 import labelme
@@ -48,6 +49,13 @@ if __name__ == '__main__':
     trainval_percent    = 0.9
     train_percent       = 0.9
 
+    #------------------------------------#
+    #   创建文件夹
+    #------------------------------------#
+    if not osp.exists(Img_output_dir):
+        os.makedirs(Img_output_dir)
+    if not osp.exists(Json_output_dir):
+        os.makedirs(Json_output_dir)
     #------------------------------------#
     #   获取当前时间
     #------------------------------------#

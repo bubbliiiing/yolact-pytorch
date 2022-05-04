@@ -2,13 +2,28 @@
 ---
 
 ## 目录
-1. [性能情况 Performance](#性能情况)
-2. [所需环境 Environment](#所需环境)
-3. [文件下载 Download](#文件下载)
-4. [训练步骤 How2train](#训练步骤)
-5. [预测步骤 How2predict](#预测步骤)
-6. [评估步骤 How2eval](#评估步骤)
-7. [参考资料 Reference](#Reference)
+1. [注意事项 Attention](#注意事项)
+2. [仓库更新 Top News](#仓库更新)
+3. [性能情况 Performance](#性能情况)
+4. [所需环境 Environment](#所需环境)
+5. [文件下载 Download](#文件下载)
+6. [训练步骤 How2train](#训练步骤)
+7. [预测步骤 How2predict](#预测步骤)
+8. [评估步骤 How2eval](#评估步骤)
+9. [参考资料 Reference](#Reference)
+
+## Top News
+**`2022-05`**:**进行大幅度更新、支持step、cos学习率下降法、支持adam、sgd优化器选择、支持学习率根据batch_size自适应调整、支持map评估、多GPU训练。**  
+
+**`2022-01`**:**创建仓库、支持训练与预测。**  
+
+## 相关仓库
+| 模型 | 路径 |
+| :----- | :----- |
+yolact-keras | https://github.com/bubbliiiing/yolact-keras  
+yolact-pytorch | https://github.com/bubbliiiing/yolact-pytorch
+yolact-tf2 | https://github.com/bubbliiiing/yolact-tf2
+mask-rcnn-keras | https://github.com/bubbliiiing/mask-rcnn-keras
 
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | bbox mAP 0.5:0.95 | bbox mAP 0.5 | segm mAP 0.5:0.95 | segm mAP 0.5 |
