@@ -24,6 +24,7 @@ yolact-keras | https://github.com/bubbliiiing/yolact-keras
 yolact-pytorch | https://github.com/bubbliiiing/yolact-pytorch
 yolact-tf2 | https://github.com/bubbliiiing/yolact-tf2
 mask-rcnn-keras | https://github.com/bubbliiiing/mask-rcnn-keras
+mask-rcnn-tf2 | https://github.com/bubbliiiing/mask-rcnn-tf2
 
 ## 性能情况
 | 训练数据集 | 权值文件名称 | 测试数据集 | 输入图片大小 | bbox mAP 0.5:0.95 | bbox mAP 0.5 | segm mAP 0.5:0.95 | segm mAP 0.5 |
