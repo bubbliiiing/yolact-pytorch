@@ -3,6 +3,7 @@
 #-------------------------------------#
 import os
 import warnings
+from functools import partial
 
 import numpy as np
 import torch
@@ -18,7 +19,8 @@ from utils.anchors import get_anchors
 from utils.augmentations import Augmentation
 from utils.callbacks import LossHistory
 from utils.dataloader import COCODetection, dataset_collate
-from utils.utils import get_classes, get_coco_label_map, show_config
+from utils.utils import (get_classes, get_coco_label_map, seed_everything,
+                         show_config, worker_init_fn)
 from utils.utils_fit import fit_one_epoch
 
 warnings.filterwarnings("ignore")
@@ -29,6 +31,11 @@ if __name__ == "__main__":
     #   没有GPU可以设置成False
     #-------------------------------#
     Cuda            = True
+    #----------------------------------------------#
+    #   Seed    用于固定随机种子
+    #           使得每次独立训练都可以获得一样的结果
+    #----------------------------------------------#
+    seed            = 11
     #---------------------------------------------------------------------#
     #   distributed     用于指定是否使用单机多卡分布式运行
     #                   终端指令仅支持Ubuntu。CUDA_VISIBLE_DEVICES用于在Ubuntu下指定显卡。
@@ -72,7 +79,7 @@ if __name__ == "__main__":
     #   一般来讲，网络从0开始的训练效果会很差，因为权值太过随机，特征提取效果不明显，因此非常、非常、非常不建议大家从0开始训练！
     #   如果一定要从0开始，可以了解imagenet数据集，首先训练分类模型，获得网络的主干部分权值，分类模型的 主干部分 和该模型通用，基于此进行训练。
     #----------------------------------------------------------------------------------------------------------------------------#
-    model_path      = "model_data/yolact_weights_coco.pth"
+    model_path      = ""
     #------------------------------------------------------#
     #   input_shape     输入的shape大小
     #------------------------------------------------------#
@@ -143,13 +150,13 @@ if __name__ == "__main__":
     #   Unfreeze_batch_size     模型在解冻后的batch_size
     #------------------------------------------------------------------#
     UnFreeze_Epoch      = 200
-    Unfreeze_batch_size = 8
+    Unfreeze_batch_size = 4
     #------------------------------------------------------------------#
     #   Freeze_Train    是否进行冻结训练
     #                   默认先冻结主干训练后解冻训练。
     #                   如果设置Freeze_Train=False，建议使用优化器为sgd
     #------------------------------------------------------------------#
-    Freeze_Train        = True
+    Freeze_Train        = False
 
     #------------------------------------------------------------------#
     #   其它训练参数：学习率、优化器、学习率下降有关
@@ -201,6 +208,7 @@ if __name__ == "__main__":
     val_image_path          = "datasets/coco/JPEGImages"
     val_annotation_path     = "datasets/coco/Jsons/val_annotations.json"
 
+    seed_everything(seed)
     #------------------------------------------------------#
     #   设置用到的显卡
     #------------------------------------------------------#
@@ -216,6 +224,7 @@ if __name__ == "__main__":
     else:
         device          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         local_rank      = 0
+        rank            = 0
 
     #----------------------------------------------------#
     #   获取classes和anchor
@@ -442,9 +451,11 @@ if __name__ == "__main__":
                     batch_size = batch_size // ngpus_per_node
                     
                 gen             = DataLoader(train_dataset, shuffle = shuffle, batch_size = batch_size, num_workers = num_workers, pin_memory=True,
-                                            drop_last=True, collate_fn=dataset_collate, sampler=train_sampler)
+                                            drop_last=True, collate_fn=dataset_collate, sampler=train_sampler, 
+                                            worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
                 gen_val         = DataLoader(val_dataset  , shuffle = shuffle, batch_size = batch_size, num_workers = num_workers, pin_memory=True, 
-                                            drop_last=True, collate_fn=dataset_collate, sampler=val_sampler)
+                                            drop_last=True, collate_fn=dataset_collate, sampler=val_sampler, 
+                                            worker_init_fn=partial(worker_init_fn, rank=rank, seed=seed))
 
                 UnFreeze_flag = True
 
